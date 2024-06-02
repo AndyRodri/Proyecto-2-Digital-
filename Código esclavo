@@ -1,26 +1,33 @@
-#include <Wire.h>
+#include <Wire.h>  // Incluye la librería Wire para comunicación I2C
 
+// Definición de los pines para los motores DC
 const int motorDCPin1 = 7;  // Pin para el primer motor DC (Pastilla)
 const int motorDCPin2 = 8;  // Pin para el segundo motor DC (Paciente)
 
+// Variables para mantener el estado de los motores
 bool motor1State = false;
 bool motor2State = false;
 
 void setup() {
+  // Configura los pines de los motores como salidas
   pinMode(motorDCPin1, OUTPUT);
   pinMode(motorDCPin2, OUTPUT);
   
-  Wire.begin(8);  // Dirección del Arduino esclavo
+  // Inicializa la comunicación I2C como esclavo con dirección 8
+  Wire.begin(8);
+  // Define la función de interrupción que se llama cuando se reciben datos
   Wire.onReceive(receiveEvent);
 }
 
 void loop() {
+  // Enciende o apaga el primer motor según el estado de motor1State
   if (motor1State) {
     digitalWrite(motorDCPin1, HIGH);
   } else {
     digitalWrite(motorDCPin1, LOW);
   }
 
+  // Enciende o apaga el segundo motor según el estado de motor2State
   if (motor2State) {
     digitalWrite(motorDCPin2, HIGH);
   } else {
@@ -28,21 +35,22 @@ void loop() {
   }
 }
 
+// Función que se llama cuando se reciben datos I2C
 void receiveEvent(int howMany) {
+  // Mientras haya datos disponibles para leer
   while (Wire.available()) {
+    // Lee un byte de datos
     char c = Wire.read();
+    // Dependiendo del comando recibido, actualiza los estados de los motores
     if (c == 'P') {
-      motor1State = true;
-      motor2State = false; // Apaga el otro motor
-    } else if (c == 'S') {
-      motor2State = true;
-      motor1State = false; // Apaga el otro motor
-    } else if (c == 'T') {
-      motor2State = true;
-      motor1State = false; // Apaga el otro motor
+      motor1State = true;  // Enciende el primer motor
+      motor2State = false; // Apaga el segundo motor
+    } else if (c == 'S' || c == 'T') {
+      motor2State = true;  // Enciende el segundo motor
+      motor1State = false; // Apaga el primer motor
     } else if (c == 'O') {
-      motor1State = false;
-      motor2State = false; // Apaga ambos motores
+      motor1State = false; // Apaga ambos motores
+      motor2State = false;
     }
   }
 }
