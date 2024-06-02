@@ -1,0 +1,48 @@
+#include <Wire.h>
+
+const int motorDCPin1 = 7;  // Pin para el primer motor DC (Pastilla)
+const int motorDCPin2 = 8;  // Pin para el segundo motor DC (Paciente)
+
+bool motor1State = false;
+bool motor2State = false;
+
+void setup() {
+  pinMode(motorDCPin1, OUTPUT);
+  pinMode(motorDCPin2, OUTPUT);
+  
+  Wire.begin(8);  // Dirección del Arduino esclavo
+  Wire.onReceive(receiveEvent);
+}
+
+void loop() {
+  if (motor1State) {
+    digitalWrite(motorDCPin1, HIGH);
+  } else {
+    digitalWrite(motorDCPin1, LOW);
+  }
+
+  if (motor2State) {
+    digitalWrite(motorDCPin2, HIGH);
+  } else {
+    digitalWrite(motorDCPin2, LOW);
+  }
+}
+
+void receiveEvent(int howMany) {
+  while (Wire.available()) {
+    char c = Wire.read();
+    if (c == 'P') {
+      motor1State = true;
+      motor2State = false; // Apaga el otro motor
+    } else if (c == 'S') {
+      motor2State = true;
+      motor1State = false; // Apaga el otro motor
+    } else if (c == 'T') {
+      motor2State = true;
+      motor1State = false; // Apaga el otro motor
+    } else if (c == 'O') {
+      motor1State = false;
+      motor2State = false; // Apaga ambos motores
+    }
+  }
+}
