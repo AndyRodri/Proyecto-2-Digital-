@@ -1,13 +1,15 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);  // Dirección del módulo PCF8574T y tamaño de la pantalla
+// Inicializa la pantalla LCD con la dirección del módulo I2C y el tamaño de la pantalla
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-const int potDolorPin = A0;
-const int switchMedicamentoPin = 6;
-const int potPresionPin = A1;
-const int potDolorEstomagoPin = A2;
+const int potDolorPin = A0;             // Pin del potenciómetro para el dolor
+const int switchMedicamentoPin = 6;     // Pin del interruptor para el modo "Tomar pastilla"
+const int potPresionPin = A1;           // Pin del potenciómetro para la presión
+const int potDolorEstomagoPin = A2;     // Pin del potenciómetro para el dolor de estómago
 
+// Enumeraciones para los estados de entrada y salida
 enum EstadoEntrada {
   LeerMedicamento,
   LeerDolor,
@@ -22,44 +24,45 @@ enum EstadoSalida {
   MostrarDolorEstomago
 };
 
+// Variables para almacenar el estado actual de entrada y salida
 EstadoEntrada estadoEntradaActual = LeerMedicamento;
 EstadoSalida estadoSalidaActual = MostrarMedicamento;
 
-int potDolorVal;
-int switchMedicamentoState;
-int potPresionVal;
-int potDolorEstomagoVal;
+int potDolorVal;             // Variable para el valor del potenciómetro de dolor
+int switchMedicamentoState;  // Variable para el estado del interruptor
+int potPresionVal;           // Variable para el valor del potenciómetro de presión
+int potDolorEstomagoVal;     // Variable para el valor del potenciómetro de dolor de estómago
 
 void setup() {
-  lcd.init();
-  lcd.backlight();
+  lcd.init();         // Inicializa la pantalla LCD
+  lcd.backlight();    // Enciende la luz de fondo de la pantalla LCD
   
-  pinMode(switchMedicamentoPin, INPUT);
+  pinMode(switchMedicamentoPin, INPUT); // Configura el pin del interruptor como entrada
   
-  Wire.begin();
+  Wire.begin();       // Inicializa la comunicación I2C
 }
 
 void loop() {
   switch (estadoEntradaActual) {
     case LeerMedicamento:
-      switchMedicamentoState = digitalRead(switchMedicamentoPin);
+      switchMedicamentoState = digitalRead(switchMedicamentoPin); // Lee el estado del interruptor
       estadoSalidaActual = MostrarMedicamento;
       if (switchMedicamentoState != HIGH) {
         estadoEntradaActual = LeerDolor;
       }
       break;
     case LeerDolor:
-      potDolorVal = map(analogRead(potDolorPin), 0, 1023, 1, 10);
+      potDolorVal = map(analogRead(potDolorPin), 0, 1023, 1, 10); // Mapea el valor del potenciómetro de dolor
       estadoSalidaActual = MostrarDolor;
       estadoEntradaActual = LeerPresion;
       break;
     case LeerPresion:
-      potPresionVal = map(analogRead(potPresionPin), 0, 1023, 1, 10);
+      potPresionVal = map(analogRead(potPresionPin), 0, 1023, 1, 10); // Mapea el valor del potenciómetro de presión
       estadoSalidaActual = MostrarPresion;
       estadoEntradaActual = LeerDolorEstomago;
       break;
     case LeerDolorEstomago:
-      potDolorEstomagoVal = map(analogRead(potDolorEstomagoPin), 0, 1023, 1, 10);
+      potDolorEstomagoVal = map(analogRead(potDolorEstomagoPin), 0, 1023, 1, 10); // Mapea el valor del potenciómetro de dolor de estómago
       estadoSalidaActual = MostrarDolorEstomago;
       estadoEntradaActual = LeerMedicamento;
       break;
