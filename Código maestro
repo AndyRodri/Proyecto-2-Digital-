@@ -1,0 +1,155 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // Dirección del módulo PCF8574T y tamaño de la pantalla
+
+const int potDolorPin = A0;
+const int switchMedicamentoPin = 6;
+const int potPresionPin = A1;
+const int potDolorEstomagoPin = A2;
+
+enum EstadoEntrada {
+  LeerMedicamento,
+  LeerDolor,
+  LeerPresion,
+  LeerDolorEstomago
+};
+
+enum EstadoSalida {
+  MostrarMedicamento,
+  MostrarDolor,
+  MostrarPresion,
+  MostrarDolorEstomago
+};
+
+EstadoEntrada estadoEntradaActual = LeerMedicamento;
+EstadoSalida estadoSalidaActual = MostrarMedicamento;
+
+int potDolorVal;
+int switchMedicamentoState;
+int potPresionVal;
+int potDolorEstomagoVal;
+
+void setup() {
+  lcd.init();
+  lcd.backlight();
+  
+  pinMode(switchMedicamentoPin, INPUT);
+  
+  Wire.begin();
+}
+
+void loop() {
+  switch (estadoEntradaActual) {
+    case LeerMedicamento:
+      switchMedicamentoState = digitalRead(switchMedicamentoPin);
+      estadoSalidaActual = MostrarMedicamento;
+      if (switchMedicamentoState != HIGH) {
+        estadoEntradaActual = LeerDolor;
+      }
+      break;
+    case LeerDolor:
+      potDolorVal = map(analogRead(potDolorPin), 0, 1023, 1, 10);
+      estadoSalidaActual = MostrarDolor;
+      estadoEntradaActual = LeerPresion;
+      break;
+    case LeerPresion:
+      potPresionVal = map(analogRead(potPresionPin), 0, 1023, 1, 10);
+      estadoSalidaActual = MostrarPresion;
+      estadoEntradaActual = LeerDolorEstomago;
+      break;
+    case LeerDolorEstomago:
+      potDolorEstomagoVal = map(analogRead(potDolorEstomagoPin), 0, 1023, 1, 10);
+      estadoSalidaActual = MostrarDolorEstomago;
+      estadoEntradaActual = LeerMedicamento;
+      break;
+  }
+
+  switch (estadoSalidaActual) {
+    case MostrarMedicamento:
+      lcd.setCursor(0, 0);
+      if (switchMedicamentoState == HIGH) {
+        lcd.print("Tomar pastilla");
+        Wire.beginTransmission(8);  // Dirección del Arduino esclavo
+        Wire.write('P');  // Enviar 'P' para activar el motor de "Tomar pastilla"
+        Wire.endTransmission();
+      } else {
+        lcd.print("Paciente");
+        Wire.beginTransmission(8);  // Dirección del Arduino esclavo
+        Wire.write('S');  // Enviar 'S' para activar el motor de "Paciente"
+        Wire.endTransmission();
+      } 
+      delay(2000);
+      lcd.clear();
+      break;
+    
+    case MostrarDolor:
+      lcd.setCursor(0, 0);
+      if (switchMedicamentoState != HIGH){
+        lcd.print("Dolor: ");
+        lcd.print(potDolorVal);
+        if (potDolorVal >= 1 && potDolorVal <= 4) {
+          lcd.setCursor(0, 1);
+          lcd.print("Tomar 1 pastilla");
+        } else if (potDolorVal >= 5 && potDolorVal <= 7) {
+          lcd.setCursor(0, 1);
+          lcd.print("Tomar 2 pastillas");
+        } else {
+          lcd.setCursor(0, 1);
+          lcd.print("Tomar 3 pastillas");
+        }
+      }
+      delay(2000);
+      lcd.clear();
+      break;
+
+    case MostrarPresion:
+      lcd.setCursor(0, 0);
+      if (switchMedicamentoState != HIGH){
+        lcd.print("Presion: ");
+        lcd.print(potPresionVal);
+        if (potPresionVal >= 1 && potPresionVal <= 5) {
+          lcd.setCursor(0, 1);
+          lcd.print("Tomar coquita");
+        } else {
+          lcd.setCursor(0, 1);
+          lcd.print("Tomar agua fria");
+        }
+      }
+      delay(2000);
+      lcd.clear();
+      break;
+
+    case MostrarDolorEstomago:
+      lcd.setCursor(0, 0);
+      if (switchMedicamentoState != HIGH){
+        lcd.print("Dolor panza:");
+        lcd.print(potDolorEstomagoVal);
+        if (potDolorEstomagoVal >= 1 && potDolorEstomagoVal <= 3) {
+          lcd.setCursor(0, 1);
+          lcd.print("Toma té");
+        } else if (potDolorEstomagoVal >= 4 && potDolorEstomagoVal <= 6) {
+          lcd.setCursor(0, 1);
+          lcd.print("Toma pepto");
+        } else {
+          lcd.setCursor(0, 1);
+          lcd.print("Consulta a un dr");
+        }
+      }
+      delay(2000);
+      lcd.clear();
+      break;
+  }
+
+  if (switchMedicamentoState == LOW) {
+    Wire.beginTransmission(8);  // Dirección del Arduino esclavo
+    Wire.write('T');  // Enviar 'T' para activar el motor de "Paciente"
+    Wire.endTransmission();
+  } else {
+    Wire.beginTransmission(8);  // Dirección del Arduino esclavo
+    Wire.write('P');  // Enviar 'P' para activar el motor de "Tomar pastilla"
+    Wire.endTransmission();
+  }
+
+  delay(2000); // Esperar dos segundos antes de la siguiente lectura
+}
